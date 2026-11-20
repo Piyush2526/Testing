@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NIFTY Price Predictor - Fullstack</title>
+    <meta name="description" content="A fullstack NIFTY 50 price predictor powered by a Python backend with a machine learning model.">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+    <style>
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 222.2 84% 4.9%;
+            --card: 0 0% 100%;
+            --card-foreground: 222.2 84% 4.9%;
+            --primary: 222.2 47.4% 11.2%;
+            --primary-foreground: 210 40% 98%;
+            --accent: 210 40% 96.1%;
+            --accent-foreground: 222.2 47.4% 11.2%;
+            --border: 214.3 31.8% 91.4%;
+            --ring: 222.2 84% 4.9%;
+            --bull: 142 76% 36%;
+            --bear: 0 84.2% 60.2%;
+        }
+
+        .dark {
+            --background: 222.2 84% 4.9%;
+            --foreground: 210 40% 98%;
+            --card: 217.2 32.6% 17.5%;
+            --card-foreground: 210 40% 98%;
+            --primary: 210 40% 98%;
+            --primary-foreground: 222.2 47.4% 11.2%;
+            --accent: 217.2 32.6% 27.5%;
+            --accent-foreground: 210 40% 98%;
+            --border: 217.2 32.6% 27.5%;
+            --ring: 212.7 26.8% 83.9%;
+            --bull: 142 76% 36%;
+            --bear: 0 84.2% 60.2%;
+        }
+
+        /* General styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
+            transition: background-color 0.3s, color 0.3s;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        .header {
+            background-color: hsl(var(--card));
+            border-bottom: 1px solid hsl(var(--border));
+            padding: 1rem 0;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            font-size: 2rem;
+            color: hsl(var(--primary));
+        }
+
+        .logo-text h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .logo-text p {
+            font-size: 0.875rem;
+            color: hsl(var(--foreground) / 0.7);
+            margin: 0;
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        
+        .market-info {
+            text-align: right;
+        }
+
+        .market-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: hsl(var(--foreground) / 0.7);
+            margin: 0;
+        }
+        
+        .market-status {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: hsl(var(--bull));
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .theme-toggle {
+            background-color: hsl(var(--accent));
+            border: 1px solid hsl(var(--border));
+            border-radius: 9999px;
+            width: 2.5rem;
+            height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        .theme-icon {
+            font-size: 1.25rem;
+            color: hsl(var(--accent-foreground));
+        }
+
+        .main {
+            padding: 2rem 0;
+        }
+        
+        .hero {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .current-price-display {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .current-price {
+            font-size: 3rem;
+            font-weight: 800;
+            margin: 0;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .price-change {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .change-amount {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+        
+        .change-percent {
+            font-size: 0.875rem;
+            font-weight: 500;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            border: 1px solid;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .change-percent.bullish {
+            color: hsl(var(--bull));
+            background-color: hsl(var(--bull) / 0.2);
+            border-color: hsl(var(--bull) / 0.3);
+        }
+
+        .change-percent.bearish {
+            color: hsl(var(--bear));
+            background-color: hsl(var(--bear) / 0.2);
+            border-color: hsl(var(--bear) / 0.3);
+        }
+        
+        .hero-description {
+            font-size: 1rem;
+            color: hsl(var(--foreground) / 0.8);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .predictions-section, .analysis-section, .chart-section, .performance-section {
+            margin-bottom: 2rem;
+        }
+        
+        .performance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .performance-card {
+            background-color: hsl(var(--card));
+            border: 1px solid hsl(var(--border));
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .performance-card h3 {
+            font-size: 1rem;
+            font-weight: 500;
+            color: hsl(var(--foreground) / 0.7);
+            margin: 0 0 0.5rem;
+        }
+
+        .performance-card .metric-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .section-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0;
+        }
+        
+        .interactive-simulator {
+            background-color: hsl(var(--card));
+            border: 1px solid hsl(var(--border));
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .interactive-simulator .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .interactive-simulator .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .interactive-simulator label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: hsl(var(--foreground));
+        }
+
+        .interactive-simulator input {
+            padding: 0.5rem;
+            border: 1px solid hsl(var(--border));
+            border-radius: 0.25rem;
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .predictions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .prediction-card {
+            background-color: hsl(var(--card));
+            border: 1px solid hsl(var(--border));
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        
+        .prediction-card .prediction-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin: 0 0 0.5rem;
+        }
+
+        .prediction-card .prediction-price {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .prediction-card .prediction-change {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .prediction-change.bull .prediction-change-amount {
+            color: hsl(var(--bull));
+        }
+
+        .prediction-change.bull .prediction-change-percent {
+            color: hsl(var(--bull));
+            background-color: hsl(var(--bull) / 0.2);
+            border: 1px solid hsl(var(--bull) / 0.3);
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+        }
+        
+        .chart-container {
+            background-color: hsl(var(--card));
+            border: 1px solid hsl(var(--border));
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+        }
+
+        .chart-header h3 {
+            margin: 0 0 1rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .chart-canvas-container {
+            position: relative;
+            height: 400px;
+        }
+        
+        .analysis-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        
+        .recommendation-card, .sentiment-card {
+            background-color: hsl(var(--card));
+            border: 1px solid hsl(var(--border));
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+        }
+
+        .recommendation-header, .sentiment-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .recommendation-header h3, .sentiment-header h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .recommendation-content {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .recommendation-action {
+            font-size: 1rem;
+            font-weight: 700;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+        }
+        
+        .recommendation-action.buy {
+            background-color: hsl(var(--bull));
+            color: white;
+        }
+        
+        .recommendation-confidence {
+            font-size: 1rem;
+            color: hsl(var(--foreground) / 0.8);
+        }
+        
+        .recommendation-target {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .recommendation-reason {
+            font-size: 0.875rem;
+            color: hsl(var(--foreground) / 0.6);
+            margin: 1rem 0 0;
+        }
+        
+        .sentiment-main {
+            margin-bottom: 0.75rem;
+        }
+
+        .sentiment-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .sentiment-value.bullish {
+            color: hsl(var(--bull));
+        }
+        
+        .sentiment-description {
+            font-size: 0.875rem;
+            color: hsl(var(--foreground) / 0.6);
+            margin: 0;
+        }
+        
+        .sentiment-metrics {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+        }
+
+        .sentiment-metric-label {
+            font-size: 0.875rem;
+            color: hsl(var(--foreground) / 0.7);
+        }
+        
+        .sentiment-metric-value {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .sentiment-updated {
+            font-size: 0.75rem;
+            color: hsl(var(--foreground) / 0.5);
+            margin-top: 1rem;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem 0 1rem;
+            color: hsl(var(--foreground) / 0.6);
+            border-top: 1px solid hsl(var(--border));
+        }
+
+        .footer-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .disclaimer {
+            font-size: 0.75rem;
+            margin: 0;
+        }
+    </style>
+</head>
+<body class="dark">
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo-section">
+                    <div class="logo-icon">
+                        <i data-lucide="bar-chart-3"></i>
+                    </div>
+                    <div class="logo-text">
+                        <h1>STOCK Price Predictor</h1>
+                        <p>AI-Powered Market Intelligence</p>
+                    </div>
+                </div>
+                
+                <div class="header-actions">
+                    <div class="market-info">
+                        <p class="market-label">NSE NIFTY 50</p>
+                        <p class="market-status">Live Market Data</p>
+                    </div>
+                    <button class="theme-toggle" id="themeToggle">
+                        <i data-lucide="moon" class="theme-icon"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <section class="hero">
+                <div class="current-price-display">
+                    <h2 class="current-price" id="currentPrice">₹0.00</h2>
+                    <div class="price-change">
+                        <span class="change-amount" id="changeAmount"></span>
+                        <span class="change-percent" id="changePercent"></span>
+                    </div>
+                </div>
+                <p class="hero-description">
+                    Real-time NIFTY 50 index price with AI-powered predictions and market sentiment analysis
+                </p>
+            </section>
+
+            <section class="interactive-simulator">
+                <div class="section-header">
+                    <i data-lucide="bar-chart-2"></i>
+                    <h2>Interactive Simulator</h2>
+                </div>
+                <p class="hero-description" style="margin-bottom: 1.5rem;">
+                    Adjust the values below to see how different factors impact the next day's predicted price.
+                </p>
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="closePriceInput">Current Price</label>
+                        <input type="number" id="closePriceInput" step="0.01" />
+                    </div>
+                    <div class="control-group">
+                        <label for="ma50Input">50-Day Moving Average</label>
+                        <input type="number" id="ma50Input" step="0.01" />
+                    </div>
+                    <div class="control-group">
+                        <label for="rsiInput">RSI</label>
+                        <input type="number" id="rsiInput" step="0.01" min="0" max="100" />
+                    </div>
+                </div>
+            </section>
+
+            <section class="predictions-section">
+                <div class="section-header">
+                    <i data-lucide="trending-up"></i>
+                    <h2>Price Predictions</h2>
+                </div>
+                <div class="predictions-grid" id="predictionsGrid">
+                    <div style="text-align: center; color: hsl(var(--foreground) / 0.5);">Loading predictions...</div>
+                </div>
+            </section>
+            
+            <section class="performance-section">
+                <div class="section-header">
+                    <i data-lucide="gauge"></i>
+                    <h2>Model Performance</h2>
+                </div>
+                <div class="performance-grid" id="performanceMetrics">
+                    <div style="text-align: center; color: hsl(var(--foreground) / 0.5);">Loading backtest results...</div>
+                </div>
+            </section>
+
+            <section class="chart-section">
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h3>NIFTY 50 - Historical vs Predicted Prices</h3>
+                    </div>
+                    <div class="chart-canvas-container">
+                        <canvas id="priceChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <section class="analysis-section">
+                <div class="recommendation-card" id="recommendationCard">
+                    <div style="text-align: center; color: hsl(var(--foreground) / 0.5);">Loading recommendation...</div>
+                </div>
+                
+                <div class="sentiment-card" id="sentimentCard">
+                    <div style="text-align: center; color: hsl(var(--foreground) / 0.5);">Loading sentiment...</div>
+                </div>
+            </section>
+
+            <footer class="footer">
+                <div class="footer-content">
+                    <div class="footer-header">
+                        <i data-lucide="star"></i>
+                        <p>Powered by Machine Learning</p>
+                    </div>
+                    <p class="disclaimer">
+                        DEVELOPED BY :
+                        <br>PIYUSH DONTULWAR
+                        <br>GYANRAJAN BISWAL
+                        <br>SAYALI BHUJBAL
+                    </p>
+                </div>
+            </footer>
+        </div>
+    </main>
+
+    <script>
+        const BASE_URL = 'http://127.0.0.1:5000/api';
+
+        let recommendation = {
+            action: "BUY",
+            confidence: 87,
+            targetPrice: 25500.00,
+            reason: "Strong technical indicators suggest an upward trend with good volume support and positive market sentiment."
+        };
+
+        let sentiment = {
+            sentiment: "Bullish",
+            description: "Market showing strong bullish signals with increased buying pressure and positive investor sentiment.",
+            volatility: "Medium",
+            volume: "High",
+            lastUpdated: new Date().toLocaleTimeString('en-IN', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: true 
+            })
+        };
+
+        let historicalData = {
+            labels: [],
+            prices: [],
+            ma50: []
+        };
+
+        /**
+         * Theme Management
+         */
+        function initTheme() {
+            const themeToggle = document.getElementById('themeToggle');
+            const body = document.body;
+            const themeIcon = themeToggle.querySelector('i');
+            
+            let isDark = true; 
+            
+            function updateThemeIcon() {
+                themeIcon.setAttribute('data-lucide', isDark ? 'sun' : 'moon');
+                lucide.createIcons();
+            }
+            
+            function toggleTheme() {
+                isDark = !isDark;
+                if (isDark) {
+                    body.classList.add('dark');
+                } else {
+                    body.classList.remove('dark');
+                }
+                updateThemeIcon();
+                if (window.priceChart && typeof window.priceChart.destroy === 'function') {
+                    updateChartTheme();
+                }
+            }
+            
+            updateThemeIcon();
+            themeToggle.addEventListener('click', toggleTheme);
+        }
+
+        /**
+         * Price Updates
+         */
+        function updateCurrentPriceDisplay(price, change, changePercent) {
+            const priceElement = document.getElementById('currentPrice');
+            const changeAmountElement = document.getElementById('changeAmount');
+            const changePercentElement = document.getElementById('changePercent');
+            
+            priceElement.textContent = `₹${price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+            
+            const changePrefix = change >= 0 ? '+' : '';
+            changeAmountElement.textContent = `${changePrefix}₹${change.toFixed(2)}`;
+            changePercentElement.textContent = `${changePrefix}${changePercent.toFixed(2)}%`;
+            
+            const isPositive = change >= 0;
+            changeAmountElement.style.color = isPositive ? 'hsl(var(--bull))' : 'hsl(var(--bear))';
+            
+            changePercentElement.classList.remove('bullish', 'bearish');
+            changePercentElement.classList.add(isPositive ? 'bullish' : 'bearish');
+        }
+
+        /**
+         * Predictions Grid
+         */
+        function renderPredictions(currentPrice, prediction) {
+            const grid = document.getElementById('predictionsGrid');
+            
+            const predictionData = [
+                { title: "Tomorrow", price: prediction, trend: "bull" },
+                { title: "Next Week", price: prediction + (Math.random() - 0.5) * 500, trend: "bull" },
+                { title: "Next Month", price: prediction + (Math.random() - 0.5) * 1000, trend: "bull" }
+            ];
+
+            grid.innerHTML = predictionData.map(pred => {
+                const change = pred.price - currentPrice;
+                const changePercent = (change / currentPrice) * 100;
+                const changePrefix = change >= 0 ? '+' : '';
+
+                return `
+                    <div class="prediction-card">
+                        <h3 class="prediction-title">${pred.title}</h3>
+                        <div class="prediction-price">₹${pred.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                        <div class="prediction-change ${change >= 0 ? 'bull' : 'bear'}">
+                            <span class="prediction-change-amount">
+                                ${changePrefix}₹${change.toFixed(2)}
+                            </span>
+                            <span class="prediction-change-percent">
+                                ${changePrefix}${changePercent.toFixed(2)}%
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        /**
+         * Recommendation Card
+         */
+        function renderRecommendation(currentPrice, targetPrice) {
+            const card = document.getElementById('recommendationCard');
+            
+            card.innerHTML = `
+                <div class="recommendation-header">
+                    <i data-lucide="target"></i>
+                    <h3>AI Recommendation</h3>
+                </div>
+                <div class="recommendation-content">
+                    <div class="recommendation-action ${recommendation.action.toLowerCase()}">${recommendation.action}</div>
+                    <div class="recommendation-confidence">Confidence: ${recommendation.confidence}%</div>
+                </div>
+                <div class="recommendation-target">
+                    <span>Target Price:</span>
+                    <strong>₹${targetPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+                </div>
+                <div class="recommendation-target">
+                    <span>Current Price:</span>
+                    <strong>₹${currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+                </div>
+                <p class="recommendation-reason">${recommendation.reason}</p>
+            `;
+            
+            lucide.createIcons();
+        }
+
+        /**
+         * Sentiment Card
+         */
+        function renderSentiment() {
+            const card = document.getElementById('sentimentCard');
+            
+            card.innerHTML = `
+                <div class="sentiment-header">
+                    <i data-lucide="activity"></i>
+                    <h3>Market Sentiment</h3>
+                </div>
+                <div class="sentiment-main">
+                    <div class="sentiment-value ${sentiment.sentiment.toLowerCase()}">${sentiment.sentiment}</div>
+                </div>
+                <p class="sentiment-description">${sentiment.description}</p>
+                <div class="sentiment-metrics">
+                    <div class="sentiment-metric">
+                        <div class="sentiment-metric-label">Volatility</div>
+                        <div class="sentiment-metric-value">${sentiment.volatility}</div>
+                    </div>
+                    <div class="sentiment-metric">
+                        <div class="sentiment-metric-label">Volume</div>
+                        <div class="sentiment-metric-value">${sentiment.volume}</div>
+                    </div>
+                </div>
+                <div class="sentiment-updated">Last updated: ${sentiment.lastUpdated}</div>
+            `;
+            
+            lucide.createIcons();
+        }
+
+        /**
+         * Chart Creation and Management
+         */
+        function createChart(historicalLabels, historicalPrices, historicalMA50, predictionPrice) {
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            const now = new Date();
+            const predictionLabel = (now).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+
+            const isDark = document.body.classList.contains('dark');
+            const textColor = isDark ? '#f8fafc' : '#1e293b';
+            const gridColor = isDark ? '#334155' : '#e2e8f0';
+            
+            const predictedLabels = [...historicalLabels, predictionLabel];
+            const predictedPrices = [...historicalPrices, predictionPrice];
+            const predictedMA = [...historicalMA50, null];
+
+            if (window.priceChart && typeof window.priceChart.destroy === 'function') {
+                window.priceChart.destroy();
+            }
+
+            window.priceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: predictedLabels,
+                    datasets: [
+                        {
+                            label: 'Historical Prices',
+                            data: historicalPrices,
+                            borderColor: 'hsl(220 90% 56%)',
+                            backgroundColor: 'hsl(220 90% 56% / 0.1)',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: 'hsl(220 90% 56%)',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2
+                        }, 
+                        {
+                            label: '50-Day MA',
+                            data: historicalMA50,
+                            borderColor: 'hsl(38 92% 50%)',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            pointHoverRadius: 0,
+                        },
+                        {
+                            label: 'Predicted Price',
+                            data: [...Array(historicalPrices.length).fill(null), predictionPrice],
+                            borderColor: 'hsl(142 76% 36%)',
+                            backgroundColor: 'hsl(142 76% 36% / 0.1)',
+                            borderWidth: 3,
+                            borderDash: [5, 5],
+                            fill: false,
+                            tension: 0.4,
+                            pointRadius: 6,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: 'hsl(142 76% 36%)',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: textColor,
+                                font: {
+                                    family: 'Inter, sans-serif',
+                                    size: 12,
+                                    weight: '500'
+                                },
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                            titleColor: textColor,
+                            bodyColor: textColor,
+                            borderColor: isDark ? '#334155' : '#e2e8f0',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            padding: 12,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ₹${context.parsed.y.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: gridColor,
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: textColor,
+                                font: {
+                                    family: 'JetBrains Mono, monospace',
+                                    size: 11
+                                },
+                                maxTicksLimit: 8
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: gridColor,
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: textColor,
+                                font: {
+                                    family: 'JetBrains Mono, monospace',
+                                    size: 11
+                                },
+                                callback: function(value) {
+                                    return '₹' + value.toLocaleString('en-IN');
+                                }
+                            }
+                        }
+                    },
+                    elements: {
+                        point: {
+                            hoverRadius: 8
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChartTheme() {
+            if (!window.priceChart && typeof window.priceChart.destroy === 'function') return;
+            const isDark = document.body.classList.contains('dark');
+            const textColor = isDark ? '#f8fafc' : '#1e293b';
+            const gridColor = isDark ? '#334155' : '#e2e8f0';
+            
+            window.priceChart.options.plugins.legend.labels.color = textColor;
+            window.priceChart.options.plugins.tooltip.backgroundColor = isDark ? '#1e293b' : '#ffffff';
+            window.priceChart.options.plugins.tooltip.titleColor = textColor;
+            window.priceChart.options.plugins.tooltip.bodyColor = textColor;
+            window.priceChart.options.plugins.tooltip.borderColor = isDark ? '#334155' : '#e2e8f0';
+            window.priceChart.options.scales.x.grid.color = gridColor;
+            window.priceChart.options.scales.x.ticks.color = textColor;
+            window.priceChart.options.scales.y.grid.color = gridColor;
+            window.priceChart.options.scales.y.ticks.color = textColor;
+            window.priceChart.update('none');
+        }
+        
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        /**
+         * Data Fetching
+         */
+        async function fetchBacktestData() {
+            const metricsContainer = document.getElementById('performanceMetrics');
+            metricsContainer.innerHTML = '<div style="text-align: center; color: hsl(var(--foreground) / 0.5);">Running backtest...</div>';
+
+            try {
+                const response = await fetch(`${BASE_URL}/backtest`);
+                const results = await response.json();
+                
+                if (response.ok) {
+                    metricsContainer.innerHTML = `
+                        <div class="performance-card">
+                            <h3>Prediction Accuracy</h3>
+                            <div class="metric-value">${results.accuracy.toFixed(2)}%</div>
+                            <p class="disclaimer">Correctly predicted market direction.</p>
+                        </div>
+                        <div class="performance-card">
+                            <h3>Simulated Return</h3>
+                            <div class="metric-value" style="color: ${results.simulated_return >= 0 ? 'hsl(var(--bull))' : 'hsl(var(--bear))'};">${results.simulated_return.toFixed(2)}%</div>
+                            <p class="disclaimer">Return on a simulated portfolio.</p>
+                        </div>
+                        <div class="performance-card">
+                            <h3>Total Trades</h3>
+                            <div class="metric-value">${results.total_trades}</div>
+                            <p class="disclaimer">Number of predictions made.</p>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                } else {
+                    metricsContainer.innerHTML = `<div style="color: red; text-align: center;">Error: ${results.error}</div>`;
+                }
+
+            } catch (error) {
+                console.error('Error fetching backtest data:', error);
+                metricsContainer.innerHTML = '<div style="color: red; text-align: center;">Error fetching backtest data. Is the backend running?</div>';
+            }
+        }
+        
+        async function fetchPrediction(closePrice, ma50, rsi) {
+            let url = `${BASE_URL}/predict`;
+            if (closePrice && ma50 && rsi) {
+                url += `?close_price=${closePrice}&ma50=${ma50}&rsi=${rsi}`;
+            }
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    return data.prediction;
+                } else {
+                    console.error('Failed to fetch prediction:', data.error);
+                    return null;
+                }
+            } catch (error) {
+                console.error('Error fetching prediction:', error);
+                return null;
+            }
+        }
+        
+        async function fetchDataAndRender(closePrice, ma50, rsi) {
+            document.getElementById('predictionsGrid').innerHTML = '<div style="text-align: center; color: hsl(var(--foreground) / 0.5);">Loading predictions...</div>';
+            document.getElementById('recommendationCard').innerHTML = '<div style="text-align: center; color: hsl(var(--foreground) / 0.5);">Loading recommendation...</div>';
+            document.getElementById('sentimentCard').innerHTML = '<div style="text-align: center; color: hsl(var(--foreground) / 0.5);">Loading sentiment...</div>';
+
+            try {
+                const [predictResponse, dataResponse] = await Promise.all([
+                    fetchPrediction(closePrice, ma50, rsi),
+                    fetch(`${BASE_URL}/data`).then(res => res.json())
+                ]);
+
+                if (predictResponse && dataResponse.prices) {
+                    const { currentPrice, price: predictionPrice } = predictResponse;
+                    const { labels: historicalLabels, prices: historicalPrices, ma50: historicalMA50 } = dataResponse;
+                    
+                    const lastHistoricalPrice = historicalPrices[historicalPrices.length - 1];
+                    const change = currentPrice - lastHistoricalPrice;
+                    const changePercent = (change / lastHistoricalPrice) * 100;
+                    updateCurrentPriceDisplay(currentPrice, change, changePercent);
+
+                    document.getElementById('closePriceInput').value = currentPrice.toFixed(2);
+                    document.getElementById('ma50Input').value = predictResponse.ma50.toFixed(2);
+                    document.getElementById('rsiInput').value = predictResponse.rsi.toFixed(2);
+
+                    renderPredictions(currentPrice, predictionPrice);
+                    renderRecommendation(currentPrice, predictionPrice);
+                    renderSentiment();
+                    createChart(historicalLabels, historicalPrices, historicalMA50, predictionPrice);
+                } else {
+                    console.error('Failed to fetch data from backend.');
+                    document.getElementById('predictionsGrid').innerHTML = '<div style="color: red; text-align: center;">Error loading data. Check console.</div>';
+                    document.getElementById('recommendationCard').innerHTML = '<div style="color: red; text-align: center;">Error loading data. Check console.</div>';
+                    document.getElementById('sentimentCard').innerHTML = '<div style="color: red; text-align: center;">Error loading data. Check console.</div>';
+                }
+            } catch (error) {
+                console.error('Error connecting to the backend:', error);
+                document.getElementById('predictionsGrid').innerHTML = '<div style="color: red; text-align: center;">Error loading data. Is the backend server running?</div>';
+                document.getElementById('recommendationCard').innerHTML = '<div style="color: red; text-align: center;">Error loading data. Is the backend server running?</div>';
+                document.getElementById('sentimentCard').innerHTML = '<div style="color: red; text-align: center;">Error loading data. Is the backend server running?</div>';
+            }
+        }
+        
+        async function refreshData() {
+            await fetchDataAndRender();
+        }
+
+        const handleInputChange = debounce(() => {
+            const closePrice = document.getElementById('closePriceInput').value;
+            const ma50 = document.getElementById('ma50Input').value;
+            const rsi = document.getElementById('rsiInput').value;
+            fetchDataAndRender(parseFloat(closePrice), parseFloat(ma50), parseFloat(rsi));
+        }, 500);
+
+        /**
+         * Initialize Application
+         */
+        function initApp() {
+            console.log('🚀 Initializing NIFTY Price Predictor...');
+            initTheme();
+            
+            fetchDataAndRender();
+            fetchBacktestData();
+            
+            document.getElementById('closePriceInput').addEventListener('input', handleInputChange);
+            document.getElementById('ma50Input').addEventListener('input', handleInputChange);
+            document.getElementById('rsiInput').addEventListener('input', handleInputChange);
+
+            // Set up real-time updates for the default data (optional)
+            // setInterval(refreshData, 30000);
+            
+            lucide.createIcons();
+            console.log('✅ NIFTY Price Predictor initialized successfully!');
+        }
+
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
